@@ -8,15 +8,6 @@ internal class Program
     {
         _ = args; // unused
 
-        int x1 = 1;
-        int x2 = x1 << 1;
-        int x3 = x2 << 1;
-        int x4 = x3 << 1;
-        int x5 = x4 << 1;
-        int x6 = x5 << 1;
-
-        int bobo = LfsrPeriod(16, 1);
-
         string filePath = "lfsr_periods.csv";
 
         WritePeriodMatrixToCsv(filePath);
@@ -53,7 +44,13 @@ internal class Program
 
         if (state != seenStates[0])
         {
-            return -1;
+            int i = 0;
+            while (seenStates.Skip(i).Contains(state))
+            {
+                i++;
+            }
+
+            return seenStates.Count + 1 - i;
         }
 
         return seenStates.Count;
