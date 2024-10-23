@@ -104,13 +104,15 @@ public class Program
     {
         List<uint> seenStates = [];
 
-        for (uint state = 1; state <= registerCount * registerCount; state++)
+        List<int> periodLengths = [];
+
+        for (uint state = 1; state < Math.Pow(2, registerCount); state++)
         {
             while (true)
             {
                 if (state == 0)
                 {
-                    return 1;
+                    periodLengths.Add(0);
                 }
 
                 if (seenStates.Contains(state))
@@ -119,6 +121,12 @@ public class Program
                 }
 
                 seenStates.Add(state);
+
+                if (state >= Math.Pow(2, registerCount))
+                {
+                    throw new Exception("State is to big");
+                }
+
                 state = function(state, functionModifier, registerCount);
             }
 
@@ -131,11 +139,18 @@ public class Program
                 }
                 i--;
 
-                return seenStates.Count - i;
+                periodLengths.Add(seenStates.Count - i);
             }
+
+            periodLengths.Add(seenStates.Count);
         }
 
-        return seenStates.Count;
+        if (periodLengths.Count == 0)
+        {
+            return 0;
+        }
+
+        return periodLengths.Max();
     }
 
     /// <summary>
@@ -147,10 +162,10 @@ public class Program
     {
         List<string> lines = [];
 
-        List<uint> taps = [];
-        for (uint i = 1; i <= MaxNumberOfRegisters * MaxNumberOfRegisters; i++)
+        List<string> taps = [];
+        for (uint i = 1; i <= Math.Pow(2, MaxNumberOfRegisters); i++)
         {
-            taps.Add(i);
+            taps.Add(Convert.ToString(i, 2));
         }
         lines.Add(" ," + string.Join(",", taps));
 
@@ -158,7 +173,7 @@ public class Program
         {
             List<string> line = [];
 
-            for (uint functionModifier = 1; functionModifier <= Math.Pow(2, registerCount); functionModifier++)
+            for (uint functionModifier = 1; functionModifier < Math.Pow(2, registerCount); functionModifier++)
             {
                 int periodLength = LfsrPeriod(registerCount, functionModifier, function);
                 if (periodLength < 0)
