@@ -4,7 +4,7 @@ namespace LFSR_PeriodLength;
 
 public class Program
 {
-    static int MaxRegisterCount { get; } = 8;
+    static int MaxRegisterCount { get; } = 10;
 
     public static void Main()
     {
@@ -76,17 +76,28 @@ public class Program
 
                 tapPeriods.Add((tap, [.. periods]));
                 Log.Debug("Done with tap {tap}", Convert.ToString(tap, 2));
+                Console.Title = $"LFSR with {registerCount} registers, {(double)tap / maxTap * 100:0,00}%";
             }
             Log.Information("Done with {count} registers", registerCount);
-            foreach ((uint tap, uint[][] periods) in tapPeriods.OrderBy(tapPeriod => tapPeriod.periods.Length))
+            foreach ((uint tap, uint[][] periods) in tapPeriods
+                .OrderBy(tapPeriod => tapPeriod.periods.Length)
+                .OrderByDescending(tapPeriod => tapPeriod.periods.Max(period => period.Length)))
             {
+                int maxPeriodLength = periods.Max(period => period.Length);
+
+                uint[][] periodsToDisplay = periods;
+                if (registerCount > 8)
+                {
+                    periodsToDisplay = [[999]];
+                }
+
                 if (periods.Length == 1)
                 {
-                    Log.Information("Tap {tap} has periods {periods} which is perfect", Convert.ToString(tap, 2), periods);
+                    Log.Information("Tap {0btap} ({0xtap}) has {count} period. This periods length is {maxLength} which is perfect: {periods}", $"0b{Convert.ToString(tap, 2)}", $"0x{Convert.ToString(tap, 16)}", periods.Length, maxPeriodLength, periodsToDisplay);
                 }
                 else
                 {
-                    Log.Information("Tap {tap} has periods {periods}", Convert.ToString(tap, 2), periods);
+                    Log.Information("Tap {0btap} ({0xtap}) has {count} periods. The maximum period length is {maxLength}: {periods}", $"0b{Convert.ToString(tap, 2)}", $"0x{Convert.ToString(tap, 16)}", periods.Length, maxPeriodLength, periodsToDisplay);
                 }
             }
         }
