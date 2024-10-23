@@ -1,43 +1,124 @@
-﻿namespace LFSR_PeriodLength;
+﻿using Serilog;
+
+namespace LFSR_PeriodLength;
 
 public class Program
 {
-    /// <summary>
-    /// Size of the Matrix in the CSV file
-    /// </summary>
-    static int MaxNumberOfRegisters { get; } = 8;
+    static int MaxRegisterCount { get; } = 8;
 
-    /// <summary>
-    /// Application entry point
-    /// </summary>
-    /// <param name="args">Unused arguments</param>
-    public static void Main(string[] args)
+    public static void Main()
     {
-        _ = args; // unused
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            //.MinimumLevel.Debug()
+            .MinimumLevel.Information()
+            .CreateLogger();
 
-        WritePeriodMatrixToCsv("fibonacci_periods.csv", FibonacciNextState);
+        Log.Information("Calculating Fibonacci LFSR periods");
+        NextState nextState = FibonacciNextState;
+
+        for (uint registerCount = 1; registerCount <= MaxRegisterCount; registerCount++)
+        {
+            uint maxTap = (uint)Math.Pow(2, registerCount) - 1;
+            uint minTap = (uint)Math.Pow(2, registerCount - 1);
+
+            List<(uint tap, uint[][] periods)> tapPeriods = [];
+
+            for (uint tap = minTap; tap <= maxTap; tap++)
+            {
+                uint maxState = maxTap;
+                List<uint> seenStates = [];
+                List<uint[]> periods = [];
+
+                for (uint state = 1; state <= maxState; state++)
+                {
+                    if (seenStates.Contains(state))
+                    {
+                        continue;
+                    }
+
+                    #region LFSR
+                    List<uint> lfsrStates = [];
+                    while (true)
+                    {
+                        if (lfsrStates.Contains(state))
+                        {
+                            break;
+                        }
+
+                        seenStates.Add(state);
+                        lfsrStates.Add(state);
+
+                        state = nextState(state, tap, registerCount);
+                    }
+
+                    if (state == lfsrStates[0])
+                    {
+                        periods.Add([.. lfsrStates]);
+                        continue;
+                    }
+
+                    int i = 1;
+                    while (lfsrStates.Skip(i).Contains(state))
+                    {
+                        i++;
+                    }
+                    i--;
+
+                    uint[] period = [.. lfsrStates.Skip(i)];
+                    if (period.Length != lfsrStates.Count - i)
+                    {
+                        throw new Exception("Fatal error period length"); // Should never happen
+                    }
+                    periods.Add(period);
+                    #endregion LFSR
+                }
+
+                tapPeriods.Add((tap, [.. periods]));
+                Log.Debug("Done with tap {tap}", Convert.ToString(tap, 2));
+            }
+            Log.Information("Done with {count} registers", registerCount);
+            foreach ((uint tap, uint[][] periods) in tapPeriods.OrderBy(tapPeriod => tapPeriod.periods.Length))
+            {
+                if (periods.Length == 1)
+                {
+                    Log.Information("Tap {tap} has periods {periods} which is perfect", Convert.ToString(tap, 2), periods);
+                }
+                else
+                {
+                    Log.Information("Tap {tap} has periods {periods}", Convert.ToString(tap, 2), periods);
+                }
+            }
+        }
+        Log.CloseAndFlush();
     }
 
     /// <summary>
-    /// Calculates the next state of the LSFR
+    /// Calculates the next state of the LFSR
     /// </summary>
     /// <param name="state">Current state of the LFSR registers</param>
-    /// <param name="functionModifier">Modifier that modifies the function of this LSFR</param>
-    /// <param name="registerCount">Number of registers in this LSFR</param>
-    /// <returns>Next state of the LSFR</returns>
-    private delegate uint NextState(uint state, uint functionModifier, uint registerCount);
+    /// <param name="tap">Taps of this LFSR</param>
+    /// <param name="registerCount">Number of registers in this LFSR</param>
+    /// <returns>Next state of the LFSR</returns>
+    private delegate uint NextState(uint state, uint tap, uint registerCount);
 
     /// <summary>
-    /// Calculates the next state of the fibonacci LSFR
+    /// Calculates the next state of the fibonacci LFSR
     /// </summary>
     /// <param name="state">Current state of the LFSR registers</param>
-    /// <param name="tapMask">Masks which registers are used for the linear function of the LSFR</param>
-    /// <param name="registerCount">Number of registers in the LSFR</param>
-    /// <returns>Next state of the fibonacci LSFR</returns>
-    private static uint FibonacciNextState(uint state, uint tapMask, uint registerCount)
+    /// <param name="tap">Taps of the LFSR</param>
+    /// <param name="registerCount">Number of registers in the LFSR</param>
+    /// <returns>Next state of the fibonacci LFSR</returns>
+    private static uint FibonacciNextState(uint state, uint tap, uint registerCount)
     {
-        object[] initialValues = [state, Convert.ToString(state, 2), tapMask, Convert.ToString(tapMask, 2), registerCount, Convert.ToString(registerCount, 2)];
-        _ = initialValues;
+#if DEBUG && true
+        object[] initialValues = // DEBUG
+        [
+            state, Convert.ToString(state, 2),
+            tap, Convert.ToString(tap, 2),
+            registerCount, Convert.ToString(registerCount, 2)
+        ];
+#endif
 
         List<byte> registers = [];
 
@@ -53,24 +134,25 @@ public class Program
             throw new Exception("State is not zero");
         }
 
-        if ((tapMask & 1) != 1)
+        uint mustHaveTap = (uint)Math.Pow(2, registerCount - 1);
+        if ((tap & mustHaveTap) == 0)
         {
-            return 0;
+            throw new Exception("Taps do not tap first register");
         }
 
         byte feedback = 0;
 
         for (int i = 0; i < registerCount; i++)
         {
-            if ((tapMask & 1) == 1 && registers[i] == 1)
+            if ((tap & 1) == 1 && registers[(int)(registerCount - 1 - i)] == 1)
             {
                 feedback++;
                 feedback %= 2;
             }
-            tapMask >>= 1;
+            tap >>= 1;
         }
 
-        if (tapMask != 0)
+        if (tap != 0)
         {
             throw new Exception("Tap mask is not zero");
         }
@@ -91,105 +173,5 @@ public class Program
         }
 
         return state;
-    }
-
-    /// <summary>
-    /// Calculates the period length of the LSFR
-    /// </summary>
-    /// <param name="registerCount">Start configuration of the LFSR</param>
-    /// <param name="functionModifier">Modifier that modifies the function of this LSFR</param>
-    /// <param name="function">Linear function of this LSFR</param>
-    /// <returns>The period length of the LSFR with the specified values</returns>
-    private static int LfsrPeriod(uint registerCount, uint functionModifier, NextState function)
-    {
-        List<uint> seenStates = [];
-
-        List<int> periodLengths = [];
-
-        for (uint state = 1; state < Math.Pow(2, registerCount); state++)
-        {
-            while (true)
-            {
-                if (state == 0)
-                {
-                    periodLengths.Add(0);
-                }
-
-                if (seenStates.Contains(state))
-                {
-                    break;
-                }
-
-                seenStates.Add(state);
-
-                if (state >= Math.Pow(2, registerCount))
-                {
-                    throw new Exception("State is to big");
-                }
-
-                state = function(state, functionModifier, registerCount);
-            }
-
-            if (state != seenStates[0])
-            {
-                int i = 1;
-                while (seenStates.Skip(i).Contains(state))
-                {
-                    i++;
-                }
-                i--;
-
-                periodLengths.Add(seenStates.Count - i);
-            }
-
-            periodLengths.Add(seenStates.Count);
-        }
-
-        if (periodLengths.Count == 0)
-        {
-            return 0;
-        }
-
-        return periodLengths.Max();
-    }
-
-    /// <summary>
-    /// Creates the LSFR Period Matrix CSV File
-    /// </summary>
-    /// <param name="filePath">Path of the CSV file</param>
-    /// <param name="function">Linear function of this LSFR</param>
-    private static void WritePeriodMatrixToCsv(string filePath, NextState function)
-    {
-        List<string> lines = [];
-
-        List<string> taps = [];
-        for (uint i = 1; i <= Math.Pow(2, MaxNumberOfRegisters); i++)
-        {
-            taps.Add(Convert.ToString(i, 2));
-        }
-        lines.Add(" ," + string.Join(",", taps));
-
-        for (uint registerCount = 1; registerCount <= MaxNumberOfRegisters; registerCount++)
-        {
-            List<string> line = [];
-
-            for (uint functionModifier = 1; functionModifier < Math.Pow(2, registerCount); functionModifier++)
-            {
-                int periodLength = LfsrPeriod(registerCount, functionModifier, function);
-                if (periodLength < 0)
-                {
-                    line.Add(" ");
-                }
-                else
-                {
-                    line.Add(periodLength.ToString());
-                }
-            }
-
-            lines.Add(registerCount + "," + string.Join(",", line));
-        }
-
-        File.WriteAllLines(filePath, lines);
-        Console.WriteLine($"Created '{filePath}'.");
     }
 }
