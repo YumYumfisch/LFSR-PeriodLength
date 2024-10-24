@@ -105,26 +105,13 @@ public class Program
 
             for (uint startValue = 1; startValue <= maxStartValue; startValue++)
             {
-                IEnumerable<uint[]> bob = tapPeriods
+                int periodLength = tapPeriods
                     .First(tapPeriod => tapPeriod.tap == tap)
                     .periods
-                    .Where(period => period.Contains(startValue));
+                    .First(period => period.Contains(startValue))
+                    .Length;
 
-                if (bob.Count() > 1)
-                {
-                    Log.Warning("More than one period with this value"); // should not happen
-                }
-
-                if (bob.Any())
-                {
-                    int periodLength = bob.First().Length;
-                    line.Add($"{periodLength}");
-                }
-                else
-                {
-                    Log.Warning("No period length found"); // should not happen
-                    line.Add(" ");
-                }
+                line.Add($"{periodLength}");
             }
 
             lines.Add(Convert.ToString(tap, 2) + "," + string.Join(",", line));
@@ -178,15 +165,6 @@ public class Program
     /// <returns>Next state of the fibonacci LFSR</returns>
     private static uint FibonacciNextState(uint state, uint tap, uint registerCount)
     {
-#if DEBUG && false
-        object[] initialValues = // DEBUG
-        [
-            state, Convert.ToString(state, 2),
-            tap, Convert.ToString(tap, 2),
-            registerCount, Convert.ToString(registerCount, 2)
-        ];
-#endif
-
         List<byte> registers = [];
 
         for (int i = 0; i < registerCount; i++)
@@ -229,7 +207,7 @@ public class Program
             throw new Exception("Feedback is bigger than 1");
         }
 
-        registers.RemoveAt(0); // = dequeue
+        registers.RemoveAt(0);
         registers.Add(feedback);
 
         for (int i = 0; i < registerCount; i++)
