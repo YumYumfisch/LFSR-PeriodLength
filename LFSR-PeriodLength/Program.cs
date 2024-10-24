@@ -77,8 +77,61 @@ public class Program
                 Console.Title = $"LFSR with {registerCount} registers, {(double)tap / maxTap * 100:0,00}%";
             }
             LogRegisterData(registerCount, tapPeriods);
+            CreateCsv(registerCount, tapPeriods);
         }
         Log.CloseAndFlush();
+    }
+
+    private static void CreateCsv(uint registerCount, List<(uint tap, uint[][] periods)> tapPeriods)
+    {
+        Log.Information("Creating CSV");
+
+        string filePath = $"./LFSR_{registerCount}.csv";
+        List<string> lines = [];
+
+        List<string> startValues = [];
+        uint maxStartValue = (uint)Math.Pow(2, registerCount) - 1;
+        for (uint i = 1; i <= maxStartValue; i++)
+        {
+            startValues.Add($"{i}");
+        }
+        lines.Add(" ," + string.Join(",", startValues));
+
+        uint maxTap = (uint)Math.Pow(2, registerCount) - 1;
+        uint minTap = (uint)Math.Pow(2, registerCount - 1);
+        for (uint tap = minTap; tap <= maxTap; tap++)
+        {
+            List<string> line = [];
+
+            for (uint startValue = 1; startValue <= maxStartValue; startValue++)
+            {
+                IEnumerable<uint[]> bob = tapPeriods
+                    .First(tapPeriod => tapPeriod.tap == tap)
+                    .periods
+                    .Where(period => period.Contains(startValue));
+
+                if (bob.Count() > 1)
+                {
+                    Log.Warning("More than one period with this value"); // should not happen
+                }
+
+                if (bob.Any())
+                {
+                    int periodLength = bob.First().Length;
+                    line.Add($"{periodLength}");
+                }
+                else
+                {
+                    Log.Warning("No period length found"); // should not happen
+                    line.Add(" ");
+                }
+            }
+
+            lines.Add(Convert.ToString(tap, 2) + "," + string.Join(",", line));
+        }
+
+        File.WriteAllLines(filePath, lines);
+        Log.Information("Created {filePath}", filePath);
     }
 
     private static void LogRegisterData(uint registerCount, List<(uint tap, uint[][] periods)> tapPeriods)
@@ -125,7 +178,7 @@ public class Program
     /// <returns>Next state of the fibonacci LFSR</returns>
     private static uint FibonacciNextState(uint state, uint tap, uint registerCount)
     {
-#if DEBUG && true
+#if DEBUG && false
         object[] initialValues = // DEBUG
         [
             state, Convert.ToString(state, 2),
