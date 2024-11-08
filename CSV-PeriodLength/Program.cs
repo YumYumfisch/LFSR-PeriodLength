@@ -50,7 +50,7 @@ public static class Program
         List<string> registerPeriodsLines = [];
         for (int i = 0; i < registerPeriods.Length; i++)
         {
-            registerPeriodsLines.Add($"{i},{string.Join(',', registerPeriods[i])}");
+            registerPeriodsLines.Add($"{i + 1},{string.Join(',', registerPeriods[i])}");
         }
         File.WriteAllLines("registerPeriods.csv", registerPeriodsLines);
 
