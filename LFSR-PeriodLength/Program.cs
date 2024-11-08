@@ -13,8 +13,11 @@ public static class Program
             .MinimumLevel.Information()
             .CreateLogger();
 
-        Log.Information("Calculating Fibonacci LFSR periods");
+        Log.Information("Calculating LFSR period lengths");
         NextState nextState = FibonacciNextState;
+        // Note: Fibonacci LFSRs can be converted to Galois LFSRs,
+        // so the period lengths achieved using the same register count
+        // and tap configuration are equal between both types.
 
         for (uint registerCount = 1; registerCount <= MaxRegisterCount; registerCount++)
         {
