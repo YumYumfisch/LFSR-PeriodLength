@@ -2,9 +2,9 @@
 
 namespace LFSR_PeriodLength;
 
-public class Program
+public static class Program
 {
-    static int MaxRegisterCount { get; } = 10;
+    private static int MaxRegisterCount { get; } = 10;
 
     public static void Main()
     {
