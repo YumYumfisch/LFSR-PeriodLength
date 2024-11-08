@@ -4,7 +4,7 @@ namespace LFSR_PeriodLength;
 
 public static class Program
 {
-    private static int MaxRegisterCount { get; } = 10;
+    private static int MaxRegisterCount { get; } = 14;
 
     public static void Main()
     {
@@ -32,7 +32,7 @@ public static class Program
                 List<uint> seenStates = [];
                 List<uint[]> periods = [];
 
-                for (uint state = 1; state <= maxState; state++)
+                for (uint state = 0; state <= maxState; state++)
                 {
                     if (seenStates.Contains(state))
                     {
@@ -94,7 +94,7 @@ public static class Program
 
         List<string> startValues = [];
         uint maxStartValue = (uint)Math.Pow(2, registerCount) - 1;
-        for (uint i = 1; i <= maxStartValue; i++)
+        for (uint i = 0; i <= maxStartValue; i++)
         {
             startValues.Add($"{i}");
         }
@@ -106,7 +106,7 @@ public static class Program
         {
             List<string> line = [];
 
-            for (uint startValue = 1; startValue <= maxStartValue; startValue++)
+            for (uint startValue = 0; startValue <= maxStartValue; startValue++)
             {
                 int periodLength = tapPeriods
                     .First(tapPeriod => tapPeriod.tap == tap)
@@ -139,7 +139,7 @@ public static class Program
                 periodsToDisplay = [[999]];
             }
 
-            if (periods.Length == 1)
+            if (periods.Length <= 2) // 2 instead of 1 because the 0-State has a period length of one and all remaining states are contained in the other period
             {
                 Log.Information("Tap {0btap} ({0xtap}) has {count} period. This periods length is {maxLength} which is perfect: {periods}", $"0b{Convert.ToString(tap, 2)}", $"0x{Convert.ToString(tap, 16)}", periods.Length, maxPeriodLength, periodsToDisplay);
             }
