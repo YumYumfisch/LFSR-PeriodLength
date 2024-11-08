@@ -44,7 +44,34 @@ public static class Program
             }
 
             registerPeriods[registerCount - 1] = [.. periods.Order()];
-            Log.Information("{registers} registers: {periods}", registerCount, registerPeriods[registerCount - 1]);
+            Log.Information("{registerPadding}{registers} registers: {periods}", new string(' ', 2 - registerCount.ToString().Length), registerCount, registerPeriods[registerCount - 1]);
+        }
+
+        Log.Information("Possible register count to get each period:");
+
+        Dictionary<int, List<int>> periodRegisters = [];
+        for (int i = 0; i < registerPeriods.Length; i++)
+        {
+            for (int j = 0; j < registerPeriods[i].Length; j++)
+            {
+                if (!periodRegisters.ContainsKey(registerPeriods[i][j]))
+                {
+                    periodRegisters.Add(registerPeriods[i][j], [i + 1]);
+                }
+                else
+                {
+                    List<int> registers = periodRegisters.GetValueOrDefault(registerPeriods[i][j])!;
+                    if (!registers.Contains(i + 1))
+                    {
+                        registers.Add(i + 1);
+                    }
+                }
+            }
+        }
+
+        foreach (KeyValuePair<int, List<int>> period in periodRegisters)
+        {
+            Log.Information("Period {periodPadding}{period}: {registers}", new string(' ', 5 - period.Key.ToString().Length), period.Key, period.Value);
         }
     }
 }
