@@ -47,7 +47,7 @@ public static class Program
             Log.Information("{registerPadding}{registers} registers: {periods}", new string(' ', 2 - registerCount.ToString().Length), registerCount, registerPeriods[registerCount - 1]);
         }
 
-        Log.Information("Possible register count to get each period:");
+        Log.Information("Possible register count to get each period, ordered by minimum number of registers:");
 
         Dictionary<int, List<int>> periodRegisters = [];
         for (int i = 0; i < registerPeriods.Length; i++)
@@ -70,6 +70,14 @@ public static class Program
         }
 
         foreach (KeyValuePair<int, List<int>> period in periodRegisters)
+        {
+            Log.Information("Period {periodPadding}{period}: {registers}", new string(' ', 5 - period.Key.ToString().Length), period.Key, period.Value);
+        }
+
+        Log.Information("Possible register count to get each period, ordered by period:");
+
+        IOrderedEnumerable<KeyValuePair<int, List<int>>> orderedPeriodRegisters = periodRegisters.OrderBy(periodRegister => periodRegister.Key);
+        foreach (KeyValuePair<int, List<int>> period in orderedPeriodRegisters)
         {
             Log.Information("Period {periodPadding}{period}: {registers}", new string(' ', 5 - period.Key.ToString().Length), period.Key, period.Value);
         }
